@@ -8,8 +8,12 @@
 #                                                          #
 # Autor: Matheus Siqueira (matheus.businessc@gmail.com)    #
 # Mantenedor: Matheus Siqueira                             #
+#..........................................................#
 # Exemplo de uso:                                          #
-# ./backup.sh [compactador*] [diretório*] [nome-arquivo]   #
+# ./backupV2.sh  -c zip -d $(pwd)                          #
+#  Neste exemplo o programa vai compactar o diretório atual#
+#  utilizando o zip e vai gerar um arquivo com o nome      #
+#  padrão                                                  #
 #......................................................... #
 # O programa recebe como parâmetros o compactador desejado #
 # e o diretório a ser compactado e então realiza a         #
@@ -19,71 +23,66 @@
 #        bash 5.1.16                                       #
 #..........................................................#
 # Histórico:                                               #
-#         16/09/2022                                       #
+#         16/09/2022, Matheus                              #
 #           - Criação do programa                          #
+#         30/09/2022, Matheus                              #
+#           - Restruturação do códgio (getopt)             #
+#           - Inserção do manual de uso                    #
+#                                                          #
 ############################################################
 
 
-
-COMPACT=$1 #parâmetro obrigatório
-DIR=$2 #parâmetro obrigatório
-NAME_FILE=$3 #opcional
-
-
-# logado como usuário root
-# USER=$(whoami)
-# if [[ $USER != "root" ]]; then
-#   echo "Precisa ser usuário root para realizar backup"
-#   exit 1
-# fi
+#..............................VARIÁVEIS..............................#
 
 
 
-# programa figlet instalado?
-figlet test > /dev/null 2>&1
 
-if [ $? -ne 0 ]; then
-  echo "Necessário instalar o programa figlet"
-  read -p "Proceder [y/n]" RESP
-  if [[ $RESP == 'y' || $RESP == 'Y' ]]; then
-    sudo apt install figlet
-    if [ $? -eq 0 ]; then
-      figlet Backup.sh
-    fi
-  else
-    echo "Saindo..."
-    sleep 1
-    exit 0
-  fi
-else
-  figlet Backup.sh
-fi
+VERSION="v1.1"
+COMPACT=
+DIR=
+NAME=
+MANUAL="
+  $(basename $0) - [OPÇÕES]
+    -n - especifica o nome da arquivo que será gerado
+    -c - define o compactador que será utilizado [zip/tar]
+    -d - especifica o diretório que será compactado
+    -h - exibi o manual de uso
+    -v - exibi a versão do programa
+"
+HELP="\033[31m[ERRO]\033[0m Comando não encontrado, verifique o manual com a opção -h."
+UNEXPECTED_EXIT="\033[31m[ERRO]\033[0m - Saída inesperada."
+DIR_NO_FOUND="\033[31m[ERRO]\033[0m - Diretório inexistente."
+COMPACT_NO_FOUND="\033[31m[ERRO]\033[0m - Compactador Desconhecido."
+SUCCESS="\033[32m[SUCESSO]\033[0m - Compactação realizada com sucesso."
+FAILURE="\033[31m[ERRO]\033[0m - Não foi possível compactar os arquivos."
+
+
+#..............................TESTES..............................#
+
+
+
+while getopts "vhn:c:d:" OPT
+do
+  case "$OPT" in
+    "c") COMPACT="$OPTARG"           ;;
+    "d") DIR="$OPTARG"               ;;
+    "h") echo "$MANUAL" && exit 0    ;;
+    "n") NAME="$OPTARG"                ;;
+    "v") echo "$VERSION" && exit 0   ;;
+    "?") exit 1                      ;;
+    *) echo -e "$HELP" && exit 1   ;;
+ esac
+done
+
+#..............................EXECUÇÃO..............................#
 
 
 if [[ $COMPACT = "tar" ]]; then
-  if [[ -d $DIR ]]; then
-    if [[ -z $NAME_FILE ]]; then
-      tar -czf backup-$(date +%Y-%m-%d).tar.gz $DIR #se name_file vazio, backup criado com nome default
-      [ $? -eq 0 ] && echo "Backup realizado com sucesso" || echo "Erro no processo de backup"
-    else
-      tar -czf $NAME_FILE $DIR
-      [ $? -eq 0 ] && echo "Backup realizado com sucesso" || echo "Erro no processo de backup"
-    fi
-  else
-    echo "Diretório inexistente"
-  fi
-elif [[ $COMPACT = "zip" ]]; then
-  if [[ -d $DIR ]]; then
-    if [[ -z $NAME_FILE ]]; then
-      zip -r backup-$(date +%Y-%m-%d).zip $DIR
-      [ $? -eq 0 ] && echo "Backup realizado com sucesso" || echo "Erro no processo de backup"
-    else
-      zip -r $NAME_FILE $DIR
-      [ $? -eq 0 ] && echo "Backup realizado com sucesso" || echo "Erro no processo de backup"
-    fi
-  else
-    echo "Diretório inexistente"
-  fi
-else
-  echo "Compactador não identificado"
+    [[ -z $NAME ]] && tar -czf backup-$(date +%Y-%m-%d).tar.gz $DIR || tar -czf $NAME $DIR
+    [[ $? -eq 0 ]] && echo -e "$SUCCESS" || echo -e "$FAILURE"
+fi
+
+if [[ $COMPACT = "zip" ]]; then
+     [[ -z $NAME ]] && zip -r backup-$(date +%Y-%m-%d).zip $DIR  || zip -r $NAME $DIR
+     [[ $? -eq 0 ]] && echo -e "$SUCCESS" || echo -e "$FAILURE"
 fi
