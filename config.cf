@@ -1,0 +1,7 @@
+# Configurações sobre armazenamento local (atente-se a identação dos valores)
+
+# true significa que o programa criará um diretório de backup no diretório home
+DIR_BACKUP:true
+
+# true significa que todo arquivo compactado pelo programa será salvo no diretório home
+SAVE_DIR_BACKUP:true
